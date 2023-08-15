@@ -174,12 +174,15 @@ export default function Gallery() {
     }, [counter2])
 
     useEffect(() => {
+        let timeout
         if (counter1 !== counter2) {
             setDisabled(true)
+            clearInterval(timeout)
         } else {
-            setTimeout(() => {
+            timeout = setTimeout(() => {
                 setDisabled(false)
-            }, 500)    
+                clearInterval(timeout)
+            }, 800)    
         }
     }, [counter1, counter2])
 
@@ -209,8 +212,6 @@ export default function Gallery() {
                     }
                 })
             }, duration)
-
-            
         }
 
         if (canvasClock == 2) {
