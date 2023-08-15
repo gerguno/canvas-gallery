@@ -13,7 +13,10 @@ export default function Gallery() {
   const intervalRef2 = useRef();
   const [duration, setDuration] = useState(3000); // Duration of the animation in milliseconds
   const stepTime = 15; // Time between each step in milliseconds
-  const [blur, setBlur] = useState(30);
+  const [blur, setBlur] = useState(20);
+  const [easingType1, setEasingType1] = useState('easeOut'); // Default easing type
+  const [easingType2, setEasingType2] = useState('easeOut'); // Default easing type
+  const [disabled, setDisabled] = useState(false)
 
   const rgbToHsl = (r, g, b) => {
     r /= 255;
@@ -107,6 +110,24 @@ export default function Gallery() {
     }, [lower2])
 
     useEffect(() => {
+        let ctx1 = canvas1.current.getContext('2d');
+        ctx1.clearRect(0, 0, canvas1.current.width, canvas1.current.width);
+
+        let img2 = new Image()
+        img2.crossOrigin = "anonymous";
+        img2.src = images[counter2].src;
+    
+        img2.onload = function() {
+            let ctx2 = canvas2.current.getContext('2d');
+            ctx2.clearRect(0, 0, canvas2.current.width, canvas2.current.width);
+            ctx2.drawImage(img2, 0, 0);
+            let pixels2 = ctx2.getImageData(0, 0, canvas2.current.width, canvas2.current.height);
+            thresholdHsl(pixels2, lower2, [1,1,1]);
+            ctx2.putImageData(pixels2, 0, 0);
+        }
+    }, [counter1])
+
+    useEffect(() => {
         let ctx2 = canvas2.current.getContext('2d');
         ctx2.clearRect(0, 0, canvas2.current.width, canvas2.current.width);
 
@@ -125,22 +146,14 @@ export default function Gallery() {
     }, [counter2])
 
     useEffect(() => {
-        let ctx1 = canvas1.current.getContext('2d');
-        ctx1.clearRect(0, 0, canvas1.current.width, canvas1.current.width);
-
-        let img2 = new Image()
-        img2.crossOrigin = "anonymous";
-        img2.src = images[counter2].src;
-    
-        img2.onload = function() {
-            let ctx2 = canvas2.current.getContext('2d');
-            ctx2.clearRect(0, 0, canvas2.current.width, canvas2.current.width);
-            ctx2.drawImage(img2, 0, 0);
-            let pixels2 = ctx2.getImageData(0, 0, canvas2.current.width, canvas2.current.height);
-            thresholdHsl(pixels2, lower2, [1,1,1]);
-            ctx2.putImageData(pixels2, 0, 0);
+        if (counter1 !== counter2) {
+            setDisabled(true)
+        } else {
+            setTimeout(() => {
+                setDisabled(false)
+            }, 500)    
         }
-    }, [counter1])
+    }, [counter1, counter2])
 
 
     const nextImage = () => {
@@ -197,29 +210,68 @@ export default function Gallery() {
             // FadeOut 1
             const steps1 = duration / stepTime; // Total number of animation steps
             let step1 = 0; // Current animation step
+
+            const calculateEasedValue1 = (step, totalSteps) => {
+                const progress = step / totalSteps;
+
+                switch (easingType1) {
+                    case 'linear':
+                    return progress;
+                    case 'easeIn':
+                    return Math.pow(progress, 2);
+                    case 'easeOut':
+                    return 1 - Math.pow(1 - progress, 2);
+                    case 'easeInOut':
+                    return progress < 0.5
+                        ? 2 * Math.pow(progress, 2)
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    default:
+                    return progress;
+                }
+            }
+
             intervalRef1.current = setInterval(() => {
-                setLower1(prevLower => {
+            setLower1(prevLower => {
                 step1++;
                 if (step1 <= steps1) {
-                    // Calculate the eased value using a quadratic function
-                    const easedValue = Math.pow(step1 / steps1, 2);
-                    return [prevLower[0], prevLower[0], easedValue];
+                const easedValue = calculateEasedValue1(step1, steps1);
+                return [prevLower[0], prevLower[0], easedValue];
                 } else {
-                    clearInterval(intervalRef1.current);
-                    return [0, 0, 1]
+                clearInterval(intervalRef1.current);
+                return [0, 0, 1]
                 }
-                });
+            });
             }, stepTime);
 
-            // FadeIn 2
+           // FadeIn 2
             const steps2 = duration / stepTime; // Total number of animation steps
             let step2 = 0; // Current animation step
+
+            const calculateEasedValue2 = (step, totalSteps) => {
+                const progress = step / totalSteps;
+
+                switch (easingType2) {
+                    case 'linear':
+                    return progress;
+                    case 'easeIn':
+                    return Math.pow(progress, 2);
+                    case 'easeOut':
+                    return 1 - Math.pow(1 - progress, 2);
+                    case 'easeInOut':
+                    return progress < 0.5
+                        ? 2 * Math.pow(progress, 2)
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    default:
+                    return progress;
+                }
+            }
+
             intervalRef2.current = setInterval(() => {
                 setLower2(prevLower => {
                 step2++;
                 if (step2 <= steps2) {
-                    // Calculate the eased value using a quadratic function
-                    const easedValue = 1 - Math.pow(step2 / steps2, 2);
+                    // Calculate the eased value using the selected easing type
+                    const easedValue = 1 - calculateEasedValue2(step2, steps2, easingType2);
                     return [prevLower[0], prevLower[0], easedValue];
                 } else {
                     clearInterval(intervalRef2.current);
@@ -227,34 +279,74 @@ export default function Gallery() {
                 }
                 });
             }, stepTime);
-            
+                        
         } else {
             // FadeOut 2
             const steps2 = duration / stepTime; // Total number of animation steps
             let step2 = 0; // Current animation step
+
+            const calculateEasedValue2 = (step, totalSteps) => {
+                const progress = step / totalSteps;
+
+                switch (easingType2) {
+                    case 'linear':
+                    return progress;
+                    case 'easeIn':
+                    return Math.pow(progress, 2);
+                    case 'easeOut':
+                    return 1 - Math.pow(1 - progress, 2);
+                    case 'easeInOut':
+                    return progress < 0.5
+                        ? 2 * Math.pow(progress, 2)
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    default:
+                    return progress;
+                }
+            }
+
             intervalRef2.current = setInterval(() => {
                 setLower2(prevLower => {
-                step2++;
-                if (step2 <= steps2) {
-                    // Calculate the eased value using a quadratic function
-                    const easedValue = Math.pow(step2 / steps2, 2);
+                    step2++;
+                    if (step2 <= steps2) {
+                    const easedValue = calculateEasedValue2(step2, steps2);
                     return [prevLower[0], prevLower[0], easedValue];
-                } else {
+                    } else {
                     clearInterval(intervalRef2.current);
-                    return [0, 0, 1];
-                }
+                    return [0, 0, 1]
+                    }
                 });
-            }, stepTime);
+                }, stepTime);
+
 
             // FadeIn 1
             const steps1 = duration / stepTime; // Total number of animation steps
             let step1 = 0; // Current animation step
+
+            const calculateEasedValue1 = (step, totalSteps) => {
+                const progress = step / totalSteps;
+
+                switch (easingType1) {
+                    case 'linear':
+                    return progress;
+                    case 'easeIn':
+                    return Math.pow(progress, 2);
+                    case 'easeOut':
+                    return 1 - Math.pow(1 - progress, 2);
+                    case 'easeInOut':
+                    return progress < 0.5
+                        ? 2 * Math.pow(progress, 2)
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    default:
+                    return progress;
+                }
+            }
+            
             intervalRef1.current = setInterval(() => {
                 setLower1(prevLower => {
                 step1++;
                 if (step1 <= steps1) {
-                    // Calculate the eased value using a quadratic function
-                    const easedValue = 1 - Math.pow(step1 / steps1, 2);
+                    // Calculate the eased value using the selected easing type
+                    const easedValue = 1 - calculateEasedValue1(step1, steps1, easingType1);
                     return [prevLower[0], prevLower[0], easedValue];
                 } else {
                     clearInterval(intervalRef1.current);
@@ -313,7 +405,7 @@ export default function Gallery() {
         top: 10,
         right: 10
       }}>
-        <button onClick={nextImage}>Next</button> <br/><br/>
+        <button onClick={nextImage} disabled={disabled}>Next</button> <br/><br/>
        
         <span>Counter 1: {counter1}</span> <br/>
         <span>Counter 2: {counter2}</span> <br/><br/>
@@ -355,7 +447,15 @@ export default function Gallery() {
             step=  "0.05"
           />
           {Math.floor(lower1[2] * 100)/ 100}
-        </label>
+        </label> <br/>
+
+        <select value={easingType1} onChange={event => setEasingType1(event.target.value)}>
+            <option value="linear">Linear</option>
+            <option value="easeIn">Ease In</option>
+            <option value="easeOut">Ease Out</option>
+            <option value="easeInOut">Ease In Out</option>
+        </select>
+
         <br/><br/>
         <span>2: </span><br/>
         <label>
@@ -393,7 +493,16 @@ export default function Gallery() {
             step=  "0.05"
           />
           {Math.floor(lower2[2] * 100)/ 100}
-        </label><br/><br/><br/>
+        </label><br/>
+
+        <select value={easingType2} onChange={event => setEasingType2(event.target.value)}>
+            <option value="linear">Linear</option>
+            <option value="easeIn">Ease In</option>
+            <option value="easeOut">Ease Out</option>
+            <option value="easeInOut">Ease In Out</option>
+        </select>
+        
+        <br/><br/>
 
         <label>
           Blur
