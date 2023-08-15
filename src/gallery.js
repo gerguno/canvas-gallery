@@ -17,6 +17,7 @@ export default function Gallery() {
   const [easingType1, setEasingType1] = useState('easeOut'); // Default easing type
   const [easingType2, setEasingType2] = useState('easeOut'); // Default easing type
   const [disabled, setDisabled] = useState(false)
+  const [preloadedImages, setPreloadedImages] = useState([])
 
   const rgbToHsl = (r, g, b) => {
     r /= 255;
@@ -82,32 +83,59 @@ export default function Gallery() {
     }, []);
 
     useEffect(() => {
-        let img1 = new Image()
-        img1.crossOrigin = "anonymous";
-        img1.src = images[counter1].src;
-        img1.onload = function() {
-            let ctx1 = canvas1.current.getContext('2d');
-            ctx1.drawImage(img1, 0, 0);
-            ctx1.filter = `blur(${lower1[2]*blur}px)`;
-            let pixels1 = ctx1.getImageData(0, 0, canvas1.current.width, canvas1.current.height);
-            thresholdHsl(pixels1, lower1, [1,1,1]);
-            ctx1.putImageData(pixels1, 0, 0);
+        const loadImages = async () => {
+            let loadedImages = [];
+    
+            for (let img of images) {
+                let newImg = new Image();
+                newImg.src = img.src;
+                await new Promise(resolve => {
+                    newImg.onload = () => {
+                        resolve(newImg);
+                        loadedImages.push(newImg);
+                    };
+                });
+            }
+    
+            setPreloadedImages(loadedImages);
         }
-    }, [lower1])
+    
+        loadImages();
+    }, []);
 
     useEffect(() => {
-        let img2 = new Image()
-        img2.crossOrigin = "anonymous";
-        img2.src = images[counter2].src;
-        img2.onload = function() {
-            let ctx2 = canvas2.current.getContext('2d');
-            ctx2.drawImage(img2, 0, 0);
-            ctx2.filter = `blur(${lower2[2]*blur}px)`;
-            let pixels2 = ctx2.getImageData(0, 0, canvas2.current.width, canvas2.current.height);
-            thresholdHsl(pixels2, lower2, [1,1,1]);
-            ctx2.putImageData(pixels2, 0, 0);
+        if (preloadedImages[counter1]) {
+            let img1 = new Image()
+            img1.crossOrigin = "anonymous";
+            img1.src = preloadedImages[counter1].src;
+            img1.onload = function() {
+                let ctx1 = canvas1.current.getContext('2d');
+                ctx1.drawImage(img1, 0, 0);
+                ctx1.filter = `blur(${lower1[2]*blur}px)`;
+                let pixels1 = ctx1.getImageData(0, 0, canvas1.current.width, canvas1.current.height);
+                thresholdHsl(pixels1, lower1, [1,1,1]);
+                ctx1.putImageData(pixels1, 0, 0);
+            }
+
         }
-    }, [lower2])
+    }, [lower1, preloadedImages])
+
+    useEffect(() => {
+        if (preloadedImages[counter2]) {
+            let img2 = new Image()
+            img2.crossOrigin = "anonymous";
+            img2.src = preloadedImages[counter2].src;
+            img2.onload = function() {
+                let ctx2 = canvas2.current.getContext('2d');
+                ctx2.drawImage(img2, 0, 0);
+                ctx2.filter = `blur(${lower2[2]*blur}px)`;
+                let pixels2 = ctx2.getImageData(0, 0, canvas2.current.width, canvas2.current.height);
+                thresholdHsl(pixels2, lower2, [1,1,1]);
+                ctx2.putImageData(pixels2, 0, 0);
+            }
+        }
+
+    }, [lower2, preloadedImages])
 
     useEffect(() => {
         let ctx1 = canvas1.current.getContext('2d');
