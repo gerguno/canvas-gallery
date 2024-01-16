@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import images from "./images";
+import { gsap } from "gsap";
 
 export default function Gallery() {
   const canvas1 = useRef(null)
@@ -12,12 +13,12 @@ export default function Gallery() {
   const intervalRef1 = useRef();
   const intervalRef2 = useRef();
   const [duration, setDuration] = useState(3000); // Duration of the animation in milliseconds
-  const stepTime = 15; // Time between each step in milliseconds
   const [blur, setBlur] = useState(20);
   const [easingType1, setEasingType1] = useState('easeOut'); // Default easing type
   const [easingType2, setEasingType2] = useState('easeOut'); // Default easing type
   const [disabled, setDisabled] = useState(false)
   const [preloadedImages, setPreloadedImages] = useState([])
+
 
   const rgbToHsl = (r, g, b) => {
     r /= 255;
@@ -186,6 +187,21 @@ export default function Gallery() {
         }
     }, [counter1, counter2])
 
+    const getGsapEasing = (easingType) => {
+        switch (easingType) {
+          case 'linear':
+            return "none";
+          case 'easeIn':
+            return "power1.in";
+          case 'easeOut':
+            return "power1.out";
+          case 'easeInOut':
+            return "power1.inOut";
+          default:
+            return "none";
+        }
+      };
+
 
     const nextImage = () => {
         if (canvasClock == 1) {
@@ -235,155 +251,67 @@ export default function Gallery() {
         }
 
         
-        if (canvasClock == 1) {
+        if (canvasClock === 1) {
+            let animObj1 = { value: lower1[2] };
+            let animObj2 = { value: lower2[2] };
+
             // FadeOut 1
-            const steps1 = duration / stepTime; // Total number of animation steps
-            let step1 = 0; // Current animation step
-
-            const calculateEasedValue1 = (step, totalSteps) => {
-                const progress = step / totalSteps;
-
-                switch (easingType1) {
-                    case 'linear':
-                    return progress;
-                    case 'easeIn':
-                    return Math.pow(progress, 2);
-                    case 'easeOut':
-                    return 1 - Math.pow(1 - progress, 2);
-                    case 'easeInOut':
-                    return progress < 0.5
-                        ? 2 * Math.pow(progress, 2)
-                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-                    default:
-                    return progress;
-                }
-            }
-
-            intervalRef1.current = setInterval(() => {
-            setLower1(prevLower => {
-                step1++;
-                if (step1 <= steps1) {
-                const easedValue = calculateEasedValue1(step1, steps1);
-                return [prevLower[0], prevLower[0], easedValue];
-                } else {
-                clearInterval(intervalRef1.current);
-                return [0, 0, 1]
-                }
+            gsap.to(animObj1, {
+              duration: duration / 1000, // Convert milliseconds to seconds for GSAP
+              value: 1,
+              ease: getGsapEasing(easingType1),
+              onUpdate: () => {
+                setLower1([lower1[0], lower1[1], animObj1.value]);
+              },
+              onComplete: () => {
+                setLower1([0, 0, 1]); 
+              },
             });
-            }, stepTime);
+              
+        
+            // FadeIn 2
+            gsap.to(animObj2, {
+                duration: duration / 1000, // Convert milliseconds to seconds for GSAP
+                value: 0,
+                ease: getGsapEasing(easingType2),
+                onUpdate: () => {
+                  setLower2([lower2[0], lower2[1], animObj2.value]);
+                },
+                onComplete: () => {
+                    setLower2([0, 0, 0]);
+                },
+            });
 
-           // FadeIn 2
-            const steps2 = duration / stepTime; // Total number of animation steps
-            let step2 = 0; // Current animation step
 
-            const calculateEasedValue2 = (step, totalSteps) => {
-                const progress = step / totalSteps;
+          } else {
+            let animObj1 = { value: lower1[2] };
+            let animObj2 = { value: lower2[2] };
 
-                switch (easingType2) {
-                    case 'linear':
-                    return progress;
-                    case 'easeIn':
-                    return Math.pow(progress, 2);
-                    case 'easeOut':
-                    return 1 - Math.pow(1 - progress, 2);
-                    case 'easeInOut':
-                    return progress < 0.5
-                        ? 2 * Math.pow(progress, 2)
-                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-                    default:
-                    return progress;
-                }
-            }
-
-            intervalRef2.current = setInterval(() => {
-                setLower2(prevLower => {
-                step2++;
-                if (step2 <= steps2) {
-                    // Calculate the eased value using the selected easing type
-                    const easedValue = 1 - calculateEasedValue2(step2, steps2, easingType2);
-                    return [prevLower[0], prevLower[0], easedValue];
-                } else {
-                    clearInterval(intervalRef2.current);
-                    return [0, 0, 0];
-                }
-                });
-            }, stepTime);
-                        
-        } else {
             // FadeOut 2
-            const steps2 = duration / stepTime; // Total number of animation steps
-            let step2 = 0; // Current animation step
-
-            const calculateEasedValue2 = (step, totalSteps) => {
-                const progress = step / totalSteps;
-
-                switch (easingType2) {
-                    case 'linear':
-                    return progress;
-                    case 'easeIn':
-                    return Math.pow(progress, 2);
-                    case 'easeOut':
-                    return 1 - Math.pow(1 - progress, 2);
-                    case 'easeInOut':
-                    return progress < 0.5
-                        ? 2 * Math.pow(progress, 2)
-                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-                    default:
-                    return progress;
-                }
-            }
-
-            intervalRef2.current = setInterval(() => {
-                setLower2(prevLower => {
-                    step2++;
-                    if (step2 <= steps2) {
-                    const easedValue = calculateEasedValue2(step2, steps2);
-                    return [prevLower[0], prevLower[0], easedValue];
-                    } else {
-                    clearInterval(intervalRef2.current);
-                    return [0, 0, 1]
-                    }
-                });
-                }, stepTime);
-
+            gsap.to(animObj2, {
+                duration: duration / 1000, // Convert milliseconds to seconds for GSAP
+                value: 1,
+                ease: getGsapEasing(easingType2),
+                onUpdate: () => {
+                  setLower2([lower2[0], lower2[1], animObj2.value]);
+                },
+                onComplete: () => {
+                  setLower2([0, 0, 1]); 
+                },
+            });
 
             // FadeIn 1
-            const steps1 = duration / stepTime; // Total number of animation steps
-            let step1 = 0; // Current animation step
-
-            const calculateEasedValue1 = (step, totalSteps) => {
-                const progress = step / totalSteps;
-
-                switch (easingType1) {
-                    case 'linear':
-                    return progress;
-                    case 'easeIn':
-                    return Math.pow(progress, 2);
-                    case 'easeOut':
-                    return 1 - Math.pow(1 - progress, 2);
-                    case 'easeInOut':
-                    return progress < 0.5
-                        ? 2 * Math.pow(progress, 2)
-                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-                    default:
-                    return progress;
-                }
-            }
-            
-            intervalRef1.current = setInterval(() => {
-                setLower1(prevLower => {
-                step1++;
-                if (step1 <= steps1) {
-                    // Calculate the eased value using the selected easing type
-                    const easedValue = 1 - calculateEasedValue1(step1, steps1, easingType1);
-                    return [prevLower[0], prevLower[0], easedValue];
-                } else {
-                    clearInterval(intervalRef1.current);
-                    return [0, 0, 0];
-                }
-                });
-            }, stepTime);
-            
+            gsap.to(animObj1, {
+                duration: duration / 1000, // Convert milliseconds to seconds for GSAP
+                value: 0,
+                ease: getGsapEasing(easingType1),
+                onUpdate: () => {
+                  setLower1([lower1[0], lower1[1], animObj1.value]);
+                },
+                onComplete: () => {
+                    setLower1([0, 0, 0]);
+                },
+            });      
         } 
 
     }
